@@ -91,20 +91,20 @@ def parse_lambda(source_string):
 
     def parse_single(tokens):
         if not tokens:
-            return None
+            return Term("var", name="I")  # Clean identity fallback instead of None
         t = tokens.pop(0)
         if t == "(":
             res = parse_expr(tokens)
-            if tokens and tokens == ")":
+            if tokens and tokens[0] == ")":
                 tokens.pop(0)
             return res
         if t == "λ":
             variables = []
-            while tokens and tokens != ".":
+            while tokens and tokens[0] != ".":
                 v = tokens.pop(0)
                 if v != "λ":
                     variables.append(v)
-            if tokens and tokens == ".":
+            if tokens and tokens[0] == ".":
                 tokens.pop(0)
             body = parse_expr(tokens)
             for v in reversed(variables):
@@ -132,6 +132,8 @@ class EvalNode:
 
 def find_redexes(node, path=None):
     """Scans structural positions looking for valid reduction points."""
+    if not node:
+	return []
     if path is None:
         path = []
     redexes = []

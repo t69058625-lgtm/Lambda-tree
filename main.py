@@ -5,14 +5,7 @@ main.py: Application orchestrator running the primary loop.
 import sys
 import os
 import pygame
-from expr import (
-    parse_lambda,
-    EvalNode,
-    build_eval_tree,
-    get_all_nodes,
-    layout_eval_tree,
-    animate_eval_tree,
-)
+from expr import parse_lambda, EvalNode, build_eval_tree, Term
 import window
 
 WIDTH, HEIGHT = 800, 600
@@ -173,15 +166,11 @@ def main():
                                 (idx + 1) % len(same_generation)
                             ]
                             ast_root = build_ast_tree(focused_node.term)
-                            window.calculate_ast_layout(
-                                ast_root, 50, WIDTH - 50
-                            )
+                            window.calculate_ast_layout(ast_root, 50, WIDTH - 50)
             elif event.type == pygame.MOUSEBUTTONDOWN and view_mode == "timeline":
                 for n in all_nodes:
                     rect = pygame.Rect(n.x - n.w / 2, n.y - n.h / 2, n.w, n.h)
-                    if n.depth <= discovered_depth and rect.collidepoint(
-                        event.pos
-                    ):
+                    if n.depth <= discovered_depth and rect.collidepoint(event.pos):
                         focused_node = n
                         ast_root = build_ast_tree(focused_node.term)
                         window.calculate_ast_layout(ast_root, 50, WIDTH - 50)
@@ -258,4 +247,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -23,9 +23,7 @@ class Canvas:
         txt_surf = self.font.render(text, True, colors["text"])
         box_width = max(txt_surf.get_width() + 40, w)
 
-        rect = pygame.Rect(
-            int(x - box_width / 2), int(y - h / 2), box_width, h
-        )
+        rect = pygame.Rect(int(x - box_width / 2), int(y - h / 2), box_width, h)
         border_color = (
             colors["active"]
             if is_focused
@@ -94,7 +92,4 @@ def draw_ast_graph(screen, font, node, colors):
         )
         draw_ast_graph(screen, font, child, colors)
     pygame.draw.circle(screen, colors["ast_node"], (int(node.x), int(node.y)), 22)
-    screen.blit(
-        font.render(node.label, True, colors["bg"]), (node.x - 10, node.y - 10)
-    )
-
+    screen.blit(font.render(node.label, True, colors["bg"]), (node.x - 10, node.y - 10))
