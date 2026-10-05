@@ -1,7 +1,9 @@
+
 """
 expr.py: Lambda Calculus AST, Parser, and Normal-Order Engine.
 """
 
+import copy
 
 class Term:
     """Represents a Lambda Calculus term (Variable, Abstraction, or Application)."""
@@ -20,27 +22,48 @@ class Term:
         return f"({self.left} {self.right})"
 
 
+def get_free_vars(node):
+    """Returns a set of free variables in the term."""
+    if not node:
+        return set()
+    if node.tag == "var":
+        return {node.name}
+    if node.tag == "abs":
+        return get_free_vars(node.right) - {node.name}
+    return get_free_vars(node.left) | get_free_vars(node.right)
+
+
 def substitute(node, var_name, expression):
-    """Safely substitutes occurrences of var_name with expression."""
+    """Safely substitutes occurrences of var_name with expression using alpha-conversion if needed."""
     if not node:
         return None
+    
     if node.tag == "var":
         if node.name == var_name:
             return copy_term(expression)
         return Term("var", name=node.name)
+        
     if node.tag == "abs":
         if node.name == var_name:
-            return node
-        return Term(
-            "abs",
-            name=node.name,
-            right=substitute(node.right, var_name, expression),
-        )
-    return Term(
-        "app",
-        left=substitute(node.left, var_name, expression),
-        right=substitute(node.right, var_name, expression),
-    )
+            return Term("abs", name=node.name, right=copy_term(node.right))
+        
+        # Защита от захвата переменной (Alpha-conversion)
+        free_in_expr = get_free_vars(expression)
+        if node.name in free_in_expr:
+            # Генерируем новое уникальное имя переменной
+            suffix = 1
+            new_name = f"{node.name}{suffix}"
+            while new_name in free_in_expr or new_name in get_free_vars(node.right):
+                suffix += 1
+                new_name = f"{node.name}{suffix}"
+            
+            # Сначала переименовываем старую переменную в теле абстракции
+            renamed_body = substitute(node.right, node.name, Term("var", name=new_name))
+            return Term("abs", name=new_name, right=substitute(renamed_body, var_name, expression))
+            
+        return Term("abs", name=node.name, right=substitute(node.right, var_name, expression))
+        
+    return Term("app", left=substitute(node.left, var_name, expression), right=substitute(node.right, var_name, expression))
 
 
 def copy_term(node):
@@ -83,7 +106,8 @@ def parse_lambda(source_string):
         if not tokens:
             return None
         res = parse_single(tokens)
-        while tokens and tokens != ")":
+        # ИСПРАВЛЕНО: Проверяем именно первый элемент списка токенов, а не сам список
+        while tokens and tokens[0] != ")":
             right = parse_single(tokens)
             if right:
                 res = Term("app", left=res, right=right)
@@ -91,7 +115,7 @@ def parse_lambda(source_string):
 
     def parse_single(tokens):
         if not tokens:
-            return Term("var", name="I")  # Clean identity fallback instead of None
+            return Term("var", name="I")
         t = tokens.pop(0)
         if t == "(":
             res = parse_expr(tokens)
@@ -133,13 +157,15 @@ class EvalNode:
 def find_redexes(node, path=None):
     """Scans structural positions looking for valid reduction points."""
     if not node:
-	return []
+        return []
     if path is None:
         path = []
     redexes = []
+    
     if node.tag == "app":
         if node.left.tag == "abs":
             redexes.append(path)
+        # ИСПРАВЛЕНО: пути синхронизированы со структурой обхода reduce_at
         redexes.extend(find_redexes(node.left, path + ["l"]))
         redexes.extend(find_redexes(node.right, path + ["r"]))
     elif node.tag == "abs":
@@ -198,4 +224,3 @@ def build_eval_tree(current_node, visited=None, depth=0, max_depth=5):
             child_node = EvalNode(next_term, depth + 1)
             current_node.children.append(child_node)
             build_eval_tree(child_node, visited, depth + 1, max_depth)
-
