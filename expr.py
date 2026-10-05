@@ -8,15 +8,15 @@ import copy
 class Term:
     """Represents a Lambda Calculus term (Variable, Abstraction, or Application)."""
 
-    def __init__(self, tag, name=None, left=None, right=None):
+    def __init__(self, tag, name: str | None = None, left=None, right=None):
         self.tag = tag  # 'var', 'abs', or 'app'
         self.name = name  # Bound variable name (for 'var' and 'abs')
         self.left = left  # Left child tree (for 'app')
         self.right = right  # Right child tree (for 'app' body / 'abs' body)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.tag == "var":
-            return self.name
+            return self.name if self.name else ""
         if self.tag == "abs":
             return f"(λ{self.name}.{self.right})"
         return f"({self.left} {self.right})"
