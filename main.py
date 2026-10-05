@@ -100,6 +100,7 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+                
             elif event.type == pygame.KEYDOWN:
                 if view_mode == "editor":
                     if event.key == pygame.K_RETURN:
@@ -132,14 +133,25 @@ def main():
                             focused_node = same_generation[(idx + 1) % len(same_generation)]
                             ast_root = build_ast_tree(focused_node.term)
                             window.calculate_ast_layout(ast_root, 50, WIDTH - 50)
-            elif event.type == pygame.MOUSEBUTTONDOWN and view_mode == "timeline":
-                for n in all_nodes:
-                    rect = pygame.Rect(n.x - n.w / 2, n.y - n.h / 2, n.w, n.h)
-                    if n.depth <= discovered_depth and rect.collidepoint(event.pos):
-                        focused_node = n
-                        ast_root = build_ast_tree(focused_node.term)
-                        window.calculate_ast_layout(ast_root, 50, WIDTH - 50)
-                        view_mode = "ast"
+
+            # ОБЪЕДИНЕННАЯ ЛОГИКА: Мышь + Тачскрин
+            elif view_mode == "timeline" and (event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.FINGERDOWN):
+                click_pos = None
+                
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    click_pos = event.pos  # Обычные пиксели мыши (x, y)
+                elif event.type == pygame.FINGERDOWN:
+                    # Переводим нормализованные координаты пальца (0.0 - 1.0) в пиксели экрана
+                    click_pos = (int(event.x * WIDTH), int(event.y * HEIGHT))
+
+                if click_pos:
+                    for n in all_nodes:
+                        rect = pygame.Rect(n.x - n.w / 2, n.y - n.h / 2, n.w, n.h)
+                        if n.depth <= discovered_depth and rect.collidepoint(click_pos):
+                            focused_node = n
+                            ast_root = build_ast_tree(focused_node.term)
+                            window.calculate_ast_layout(ast_root, 50, WIDTH - 50)
+                            view_mode = "ast"
 
         if view_mode == "timeline":
             layout.animate_eval_tree(root_node)
@@ -166,7 +178,5 @@ def main():
             canvas.screen.blit(canvas.hud_font.render(f"Term: {str(focused_node.term)}", True, THEME["text"]), (20, HEIGHT - 40))
 
         pygame.display.flip()
-
-
 if __name__ == "__main__":
     main()
